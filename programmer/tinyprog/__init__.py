@@ -274,6 +274,7 @@ class TinyMeta(object):
         return self._get_addr_range(u"userdata")
 
     def _get_addr_range(self, name):
+        return 0, 0x80000
         # get the bootmeta's addrmap or fallback to the root's addrmap.
         addr_map = self.root.get(u"bootmeta", {}).get(
             u"addrmap", self.root.get(u"addrmap", None))
@@ -307,6 +308,7 @@ class TinyProg(object):
         self.wake()
         flash_id = self.read_id()
         flash_id = [to_int(b) for b in flash_id]
+        print(flash_id)
         # temporary hack, should have better database as well as SFPD reading
         if flash_id[0:2] == [0x9D, 0x60]:
             # ISSI
