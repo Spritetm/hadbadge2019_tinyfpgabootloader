@@ -102,6 +102,7 @@ module hadbadgebl (
   TRELLIS_IO #(.DIR("BIDIR")) usb_dp_tristate (.I(usb_p_tx),.T(!usb_tx_en),.B(usb_dp),.O(usb_p_rx_in));
   TRELLIS_IO #(.DIR("BIDIR")) usb_dm_tristate (.I(usb_n_tx),.T(!usb_tx_en),.B(usb_dm),.O(usb_n_rx_in));
 
+
   assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_rx_in;
   assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_rx_in;
 

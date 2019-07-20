@@ -1,5 +1,5 @@
 PROJ=tinyfpgabl
-CONSTR=had19_proto1.lpf
+CONSTR=had19_proto2.lpf
 TRELLIS=/usr/share/trellis
 SRC=bootloader.v pll_8_48.v ../../common/*.v 
 
@@ -15,7 +15,7 @@ $(PROJ).json: $(SRC)
 	yosys -p "synth_ecp5  -top hadbadgebl -json $(PROJ).json" $(SRC)
 
 %_out.config: %.json
-	nextpnr-ecp5 --json $< --lpf $(CONSTR) --textcfg $@ --um-45k --package CABGA381 --speed 8
+	nextpnr-ecp5 --json $< --lpf $(CONSTR) --textcfg $@ --45k --package CABGA381 --speed 8
 
 %.bit: %_out.config
 	ecppack --spimode $(FLASH_MODE) --freq $(FLASH_FREQ) --svf-rowsize 100000 --svf $(PROJ).svf --input $< --bit $@
