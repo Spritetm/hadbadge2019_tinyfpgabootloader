@@ -7,7 +7,7 @@ module hadbadgebl (
   output usb_pu,
   input usb_vdet,
 
-  output [5:0] led,
+  output [8:0] led,
 
   input  flash_miso,
   output flash_cs,
@@ -40,6 +40,9 @@ module hadbadgebl (
 
   assign flash_wp = 1;
   assign flash_hold = 1;
+  assign led[8] = 1;
+  assign led[7] = 1;
+  assign led[6] = 1;
   assign led[5] = usb_p_rx;
   assign led[4] = usb_n_rx;
   assign led[3] = usb_p_tx;
