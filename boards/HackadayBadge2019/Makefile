@@ -33,7 +33,7 @@ prog: $(PROJ).svf
 
 flash: $(PROJ).svf multiboot.bin
 	make prog
-	sleep 6
+	sleep 1
 	tinyprog -p multiboot.bin -a 0
 
 clean:
