@@ -1,5 +1,5 @@
 PROJ=tinyfpgabl
-CONSTR=had19_proto2.lpf
+CONSTR=had19_proto3.lpf
 TRELLIS=/usr/share/trellis
 SRC=bootloader.v pll_8_48.v ../../common/*.v 
 
@@ -18,15 +18,16 @@ $(PROJ).json: $(SRC)
 	nextpnr-ecp5 --json $< --lpf $(CONSTR) --textcfg $@ --45k --package CABGA381 --speed 8
 
 %.bit: %_out.config
-	ecppack --spimode $(FLASH_MODE) --freq $(FLASH_FREQ) --svf-rowsize 100000 --svf $(PROJ).svf --input $< --bit $@
+	ecppack --spimode $(FLASH_MODE) --freq $(FLASH_FREQ) --input $< --bit $@
+
+%.svf: %_out.config
+	ecppack --svf-rowsize 100000 --svf $(PROJ).svf --input $<
 
 multiboot.bin: $(PROJ).bit soc.bit
 	ecpmulti --flashsize 128 --input $(PROJ).bit --input soc.bit --address 0x180000 ecpmulti-img.bin
 	cp blank_file.bin $@
 	dd if=ecpmulti-img.bin of=$@ conv=notrunc
 	dd if=ipl.bin of=$@ bs=1024 seek=3072 conv=notrunc
-
-$(PROJ).svf: $(PROJ).bit
 
 prog: $(PROJ).svf
 	openocd -f ../../../openocd.cfg -c "init; svf  $<; exit"

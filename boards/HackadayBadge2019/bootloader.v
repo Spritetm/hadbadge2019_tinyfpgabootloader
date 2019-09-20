@@ -7,14 +7,17 @@ module hadbadgebl (
   output usb_pu,
   input usb_vdet,
 
-  output [8:0] led,
-
+  output [10:0] ledc,
+  output [2:0] leda,
+  input [7:0] btn,
   input  flash_miso,
   output flash_cs,
   output flash_mosi,
   output flash_wp,
   output flash_hold,
-  
+  output reg fsel_d,
+  output reg fsel_c,
+
   output programn
 );
   wire clk_48mhz;
@@ -40,15 +43,17 @@ module hadbadgebl (
 
   assign flash_wp = 1;
   assign flash_hold = 1;
-  assign led[8] = 1;
-  assign led[7] = 1;
-  assign led[6] = 1;
-  assign led[5] = usb_p_rx;
-  assign led[4] = usb_n_rx;
-  assign led[3] = usb_p_tx;
-  assign led[2] = usb_n_tx;
-  assign led[1] = usb_tx_en;
-
+  assign ledc[10] = 0;
+  assign ledc[9] = 0;
+  assign ledc[8] = fsel_d;
+  assign ledc[7] = 0;
+  assign ledc[6] = 0;
+  assign ledc[5] = usb_p_rx;
+  assign ledc[4] = usb_n_rx;
+  assign ledc[3] = usb_p_tx;
+  assign ledc[2] = usb_n_tx;
+  assign ledc[1] = usb_tx_en;
+  assign leda = 'b001;
   assign genio[0] = clk_48mhz;
   assign genio[1] = 0;
   assign genio[2] = usb_tx_en?usb_n_tx:usb_n_rx;
@@ -74,7 +79,7 @@ module hadbadgebl (
     .usb_p_rx(usb_p_rx),
     .usb_n_rx(usb_n_rx),
     .usb_tx_en(usb_tx_en),
-    .led(led[0]),
+    .led(ledc[0]),
     .spi_miso(flash_miso),
     .spi_cs(flash_cs_i),
     .spi_mosi(flash_mosi),
@@ -82,21 +87,53 @@ module hadbadgebl (
     .boot(boot)
   );
   
-  reg initiate_boot = 0;
-  reg [8:0] boot_delay = 0;
-  assign programn = ~boot_delay[8];
- 
-  //Note: if usb_vdet is low, usb is not plugged in and we start the boot countdown timer immediately. We cancel
-  //it again if usb_vdet suddenly goes high.
-  always @(posedge clk) begin
-    if (boot) initiate_boot <= 1;
 
-    if (initiate_boot || usb_vdet==0) begin
-      boot_delay <= boot_delay + 1'b1;
-    end
-    if (usb_vdet==1 && initiate_boot==0) begin
-      boot_delay <= 0;
-    end
+  reg initiate_boot = 0;
+  reg [7:0] boot_delay = 0;
+
+  parameter STATE_WAIT = 0;
+  parameter STATE_CARTFLASH = 1;
+  parameter STATE_WAIT_TINYBOOT = 2;
+  parameter STATE_DOBOOT = 3;
+  reg [1:0] state = STATE_WAIT;
+  reg do_tinyboot;
+  reg trigger_boot = 0;
+  assign programn=~trigger_boot;
+
+//  assign fsel_c = ((state==START_CARTFLASH) && boot_delay[6]) ? 1 : 0;
+
+  always @(posedge clk) begin
+	boot_delay <= boot_delay + 1;
+	if (boot) initiate_boot <= 1;
+//	if (state==START_CARTFLASH) begin
+		if (boot_delay==31) fsel_c <= 1;
+		if (boot_delay==127) fsel_c <= 0;
+//	end else begin
+//		fsel_c <= 0;
+//	end
+	if (boot_delay=='hff) begin
+		if (state == STATE_WAIT) begin
+			do_tinyboot <= ~btn[2];
+			if (!btn[0]) begin
+				//up pressed
+				fsel_d <= 1;
+				state <= STATE_CARTFLASH;
+			end else begin
+				fsel_d <= 0;
+				state <= STATE_WAIT_TINYBOOT;
+			end
+		end else if (state == STATE_CARTFLASH) begin
+			state <= STATE_WAIT_TINYBOOT;
+		end else if (state == STATE_WAIT_TINYBOOT) begin
+			if (btn[2]) begin //never boot if up is pressed
+				if (usb_vdet==0 || do_tinyboot==0 || initiate_boot) begin
+					state <= STATE_DOBOOT;
+				end
+			end
+		end else begin //STATE_DOBOOT
+			trigger_boot <= 1;
+		end
+	end
   end
 
   assign usb_pu = 1'b1;
